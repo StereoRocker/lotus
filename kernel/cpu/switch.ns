@@ -1,0 +1,36 @@
+[GLOBAL read_eip]
+read_eip:
+	pop eax
+	jmp eax
+	
+[GLOBAL kexec_jmp]
+kexec_jmp:
+	pop eax			; Scratch the return address. We won't be using it anyway
+	pop ecx			; Get the stack address
+	pop eax			; Get the jump address address
+	mov esp, ecx	; Set the stack
+	mov ebp, ecx	; Set the stack
+	push eax		; Push the jump address onto the stack
+	push ecx		; Push a dummy value onto the stack (the below function can be called from C)
+
+[GLOBAL task_jumptouser]
+task_jumptouser:
+	mov ax, 0x23
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	
+	pop edx
+	pop ecx
+	push ecx
+	push edx
+	
+	mov eax, esp
+	push 0x23
+	push eax
+	pushf
+	push 0x1B
+	push ecx
+	iret
+	

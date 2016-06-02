@@ -1,0 +1,38 @@
+Context switching
+-----------------
+
+What is contained in a context?
+-------------------------------
+
+ - The CPU registers
+   - eax, ebx, ecx, edx, CS, DS, ES, FS, GS, SS
+ - Instruction pointer
+ - Page directory
+ - Stack
+
+Steps required to switch contexts
+---------------------------------
+
+ - Store all registers
+ - Switch page directory (switches stack as well)
+ - Restore all registers
+
+If we're only using interrupts (pre-emptive only)
+-------------------------------------------------
+
+When we create a task, we give it a new stack - a clone of it's parent's stack,
+using a paging trick so we don't have to mess around with changing values IN the
+stack.
+
+When the IRQ handler fires, the return address, CPU registers, stack pointer,
+segment selectors and IP are pushed onto the stack.
+
+Theoretically, due to the above fact, we should be able to perform a complete
+context switch within an IRQ handler, provided we change the page directory
+and stack properly.
+
+Requirements
+------------
+
+Function to switch page directory AND stack pointer at the same time.
+Method to set up the stack ready for timer-based context switching.

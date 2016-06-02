@@ -1,0 +1,67 @@
+Lotus TODO list:
+ - Parse multiboot header					X
+ - Get memory information					X
+ - Write physical memory manager			X
+ - Implement GDT support					X
+ - Implement IDT support					X
+ - Implement paging							X
+ - Write virtual memory manager				X
+ - Implement context switching				X
+ - Leads to multi-tasking support			X
+ - IPC										X
+ - Get to user mode							X
+ - Syscalls									*	The underlying implementation is complete. I'm adding necessary syscalls while porting newlib
+ - ELF parsing and executing				X	Improvements can be made, but I want the rest of the kernel in place first.
+ - Design FS interface						-   
+ 	(then we can implement things like the device interface as a file system or a subsection of the VFS which is more likely)
+ - Design device interface					-	Hooks into VFS with seperate IPC packet structure
+ 	(then we can implement things like keyboard input and display output)
+ - Port newlib								-	Port is in progress, one system call at a time!
+ - Port GCC										GCC is just I don't even.
+ - IDE driver (port from old OS)				(or maybe write a new one, since my old OS had a very ugly IDE driver!)
+ - FAT(32) driver								(this one I can possibly port from my old OS, at least to an extent)
+ - Run on actual PCs							(Set up the 486 *cough*fast 386*cough* again!)
+ - Become self hosting!							This will involve compiling GCC and binutils again! Probably on a VM, as I won't find a 486 with 512MB of RAM!
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+Some architectural notes:
+
+Lotus requires 2 modules to be loaded upon boot.
+
+Module 1 - The IRD module (Initial RAM Drive)
+
+This module represents itself as a block driver to Lotus. It should provide
+block access to an image compiled directly into it. Note that it does not
+provide a filesystem to the kernel - meaning that the image contained may be of
+any format that need not be known by the driver. This comes into play in the
+second module!
+
+Module 2 - The IFS module (Initial File System)
+
+This module represents itself as a filesystem driver to Lotus. It will be
+called upon to mount against the IRD. This will provide the initial root file
+system used by Lotus to set up the rest of the system and load any additional
+drivers - which will also be stored here!
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+To save space in memory, the IFS should contain the bare minimum set of drivers
+to start loading from an external medium, ie. IDE driver and FAT filesystem.
+However, this can be altered to suit usage requirements. A live distribution of
+Lotus may choose to contain the entire root file system as if it were the
+external storage medium to support running the entire OS from RAM. Note that
+this will not be very RAM efficient as any loaded executables will be stored
+both in the RAM drive and in it's own execution space. However, this technique
+could be used to create an installer image in the future! (When the drivers
+required to load and run from, say, a hard drive are fully implemented!)
+
+It should be noted that technically, the IRD and IFS can be combined into one
+module, as long as it initialises correctly to register as both a device and
+filesystem. it could improve it's own performance by ignoring the device it was
+passed upon mounting, and access the memory directly.
+Or it could be passed an equivalent to /dev/null and never need to register a
+device in the first place.
+
+Binutils: 2.24
+GCC: 4.8.4

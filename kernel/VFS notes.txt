@@ -1,0 +1,189 @@
+VFS notes
+
+Thinking of using a mount point list. While it can get slow when a
+lot of filesystems are mounted, I believe it allows for the most versatility
+without being restricted like, say, the DOS/Windows model of drive letters.
+
+To accomplish this, the mounting system will have to keep track of what file
+systems are mounted to which paths. Say
+
+/dev is mounted on none FS PID: 0
+/ is mounted on /dev/ird FS PID: 3
+/root is mounted on /dev/hda1 FS PID: 17
+/toor is mounted on /dev/hda2 FS PID: 17
+
+The VFS will keep track of these. When a file is requested, it will check which
+mount point contains the most common characters with the path. Since no two
+mount points will contain the exact same text in any scenario, this will allow
+me to pass the call straight to the correct underlying FS.
+
+There are 8 basic calls each FS will need to respond to via IPC:
+open
+close
+read
+write
+mount
+unmount
+filesize
+dirsize
+dirlist
+
+I will write a request and response structure for these calls.
+
+To avoid needing to create a seperate process for each mounted FS, there should
+be a way to tell the underlying FS which mount point we're attempting to call
+upon. It will most likely be best done by each FS keeping an internal track of
+which devices are mounted, and assigning an ID to each of those - creating a
+relationship between device (and other internal structures if need be, which
+would be implementation specific) and the ID. The VFS will keep track of which
+ID represents which path (along with the PID of the FS driver) - this creates a
+link between the mount point path, the FS and it's ID.
+
+Onto implementation specifics:
+
+FS request IPC structure:
+
+#define FS_REQ_MAGIC 0xF5F5CAFE
+#define FS_RES_MAGIC 0xF5F5BABE
+
+typedef struct {
+	uint32_t 	magic;		// Should be 0xF5F5CAFE
+	uint8_t 	request;	// Definitions to follow
+	uint8_t 	fsID;		// The ID identifying which specific mount point to reference
+	uint32_t 	length;		// The length of the data to follow (depends on the request)
+} fsreq_t;
+
+FS_OPEN, FS_CLOSE, FS_FILESIZE, FS_DIRLIST
+char 		path[4096];	// The absolute path (with / referencing this mount's root)
+
+FS_MOUNT
+char 		path[4096];	// The absolute path to the device to mount (with / referencing the global root path)
+
+FS_UNMOUNT
+none
+
+FS_READ
+char 		path[4096];	// The absolute path (with / referencing this mount's root)
+uint64_t 	offset;
+uint32_t 	length;
+
+FS_WRITE
+char		path[4096]; // The absolute path (with / referencing this mount's root)
+uint64_t	offset;
+uint32_t	length;
+char		data[length];
+
+Below are the definitions for the data each request should contain
+
+#define FS_OPEN 	1
+#define FS_CLOSE 	2
+#define FS_READ		3
+#define FS_WRITE	4
+#define FS_MOUNT	5
+#define FS_UNMOUNT	6
+#define FS_FILESIZE	7
+#define FS_DIRSIZE 	8
+#define FS_DIRLIST	9
+
+Response structures will be written here. I may have to write more than one.
+
+typedef struct {
+	uint32_t magic;		// Should be 0xF5F5BABE
+	uint8_t success;	// Determines whether the operation was successful or not
+	uint32_t length;	// The length of the data to follow (depends on the request)
+	// Data follows this structure in the IPC packet. Have fun with pointers!
+} fsres_t;
+
+Below is the definitions for the data for each request's response
+
+FS_OPEN, FS_CLOSE, FS_UNMOUNT
+none
+
+FS_WRITE
+uint32_t bytesWritten;	// The number of bytes that were successfully written
+
+FS_READ
+The data requested, or less as specified in the length section.
+
+FS_MOUNT
+uint8_t 	fsID;		// The ID of the newly mounted FS
+
+FS_FILESIZE
+uint64_t	length;		// The length of the file
+
+FS_DIRLIST
+uint32_t	entries;	// The number of entries
+dirent		ents[];		// Entries, as described below
+
+typedef struct {
+	char	name[4096];	// Name of the file/directory described by this entry
+	uint8_t	isDir;		// Describes whether this entry is a directory or not
+} dirent_t;
+
+More specific implementation details regarding the FS drivers
+
+A filesystem driver must register itself with the kernel - else the kernel
+won't know it can be used to mount devices! To do this, it must call a syscall
+to tell the kernel that the running process accepts FS IPC requests. The 
+value of the syscall will be determined later when I implement them.
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+The device subsystem
+(aka devfs)
+
+The device subsystem leeches off the VFS subsystem, by implanting a mounting of
+/dev with a filesystem PID of 0. As no process can have a PID of 0, the VFS
+will automatically pass any requests matching PID 0 to the devfs system.
+
+The devfs system has only 1 syscall of it's own - to register a process as a
+device. The calling process must provide a device name for itself. The calling
+process must respond to open, close, read and write calls as described below.
+
+The IPC packet structures used are very similar to the VFS IPC packets - but
+must not be used interchangeably.
+
+#define DEV_OPEN 	1
+#define DEV_CLOSE 	2
+#define DEV_READ	3
+#define DEV_WRITE	4
+
+The following defines structures for requests:
+
+typedef struct {
+	uint32_t magic;
+	uint8_t request;
+	uint32_t length;
+	// Data to follow
+} devreq_t;
+
+Below are definitions for the data for each request:
+
+DEV_OPEN, DEV_CLOSE:
+none
+
+DEV_READ:
+uint64_t offset
+uint32_t length
+
+DEV_WRITE:
+uint64_t offset
+uint32_t length
+
+The following defines structures for responses
+
+typedef struct {
+	uint32_t magic;
+	uint8_t success;
+	uint32_t length;
+	// Data to follow
+} devres_t;
+
+DEV_OPEN, DEV_CLOSE:
+none
+
+DEV_WRITE:
+uint32_t bytesWritten;	// The number of bytes successfully written
+
+DEV_READ
+The data requested, or less as specified in the response header.

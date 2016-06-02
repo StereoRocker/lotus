@@ -1,0 +1,16 @@
+[global enable_paging]
+enable_paging:
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+	ret
+
+; Requires address pushed onto stack
+[global set_page_directory]
+set_page_directory:
+	add esp, 4
+	pop eax
+	mov cr3, eax
+	push eax
+	sub esp, 4
+	ret
