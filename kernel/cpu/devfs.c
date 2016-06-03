@@ -28,7 +28,23 @@ void devfs_reg(char* name)
 	mutex_lock(&devmutex);
 	
 	// If the list doesn't exist yet, use this as the starting point
+	if (devices == (dev_t*)0)
+	{
+		devices = dev;
+		mutex_unlock(&devmutex);
+		return;
+	}
 	
+	// Find the end of the list
+	dev_t* d = devices;
+	while (d->next != (struct dev_t*)0)
+		d = (dev_t*)d->next;
+	
+	// Add this device to the end of the list
+	d->next = (struct dev_t*)dev;
+	
+	// Unlock the mutex
+	mutex_unlock(&devices)
 }
 
 uint32_t devfs_reg_sys(uint32_t data)
