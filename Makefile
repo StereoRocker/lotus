@@ -1,4 +1,4 @@
-all: newlib kernel testprog iso
+all: newlib kernel testfs testdev iso
 
 rebuild: clean all
 
@@ -9,17 +9,21 @@ newlib:
 kernel:
 	$(MAKE) -C kernel
 
-testprog: newlib
-	$(MAKE) -C testprog
+testfs: newlib
+	$(MAKE) -C testfs
 
-iso: kernel testprog
+testdev: newlib
+	$(MAKE) -C testdev
+
+iso: kernel testfs testdev
 	mkdir isodir
 	mkdir isodir/boot
 	mkdir isodir/boot/grub
 	
 	cp sysroot/boot/grub/grub.cfg isodir/boot/grub/grub.cfg
 	cp kernel/kernel.bin isodir/boot/kernel.bin
-	cp testprog/test.elf isodir/boot/test.elf
+	cp testfs/testfs.elf isodir/boot/testfs.elf
+	cp testdev/testdev.elf isodir/boot/testdev.elf
 	
 	grub-mkrescue -o os.iso -d /usr/lib/grub/i386-pc isodir
 	
@@ -27,6 +31,7 @@ iso: kernel testprog
 	
 clean:
 	$(MAKE) -C kernel clean
-	$(MAKE) -C testprog clean
+	$(MAKE) -C testfs clean
+	$(MAKE) -C testdev clean
 
-.PHONY: all clean kernel testprog
+.PHONY: all clean kernel testfs testdev

@@ -121,11 +121,12 @@ uint32_t fork()
 
 void task_forceswitch(task* t, uint8_t newtask)
 {
+	bochs_break();
 	// We're fucking around with shit, so stop shit happening
 	asm volatile("cli");
 	//bochs_break();
 	
-	// First, store this task's esp & abp
+	// First, store this task's esp & ebp
 	uint32_t esp;
 	uint32_t ebp;
 	asm volatile("mov %%esp, %0" : "=r"(esp));
@@ -153,6 +154,8 @@ void task_forceswitch(task* t, uint8_t newtask)
 
 void task_switch()
 {
+	asm volatile("cli");
+	
 	// If we haven't initialised tasking yet, just return
 	if (!current)
 	{

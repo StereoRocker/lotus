@@ -1,5 +1,0 @@
-[GLOBAL _start]
-_start:
-	int 0x80
-_loop:
-	jmp _loop

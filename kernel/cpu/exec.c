@@ -14,6 +14,8 @@
 // Jump to the start point in usermode
 void kexec_elf(uint8_t* mem, uint32_t length)
 {
+	asm volatile("cli");
+	
 	// Ensure that the image given to us is long enough to accomodate at least an ELF header and program header
 	if (length < sizeof(elf_header_t) + sizeof(elf_pheader_t))
 		PANIC("kexec_elf: file not large enough to be an ELF file");
@@ -44,7 +46,7 @@ void kexec_elf(uint8_t* mem, uint32_t length)
 	for (uint32_t i = 0; i< elf->phead_ents; i++)
 	{
 		
-		/*kprintf("vaddr: %x\n", elf_ph->vaddr);
+		kprintf("vaddr: %x\n", elf_ph->vaddr);
 		kprintf("p_offset: %x\n", elf_ph->p_offset);
 		kprintf("p_filesz: %x\n", elf_ph->p_filesz);
 		kprintf("p_memsz: %x\n", elf_ph->p_memsz);
@@ -54,7 +56,7 @@ void kexec_elf(uint8_t* mem, uint32_t length)
 		if (elf_ph->flags & ELF_WRITE)
 			kprintf("Writeable\n");
 		if (elf_ph->flags & ELF_READ)
-			kprintf("Readable\n"); */
+			kprintf("Readable\n"); 
 		
 		/* We need to do the following steps for each program header:
 		 * 1 - Place virtual memory at the requested vaddr large enough to hold up to p_memsz

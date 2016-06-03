@@ -134,8 +134,7 @@ void term_puthex(uint32_t val)
 
 void kprintf(const char* format, ...)
 {
-	// Stop interrupts so we're not interrupted
-	asm volatile("cli");
+	
 	
 	va_list lst;
 	va_start(lst, format);
@@ -182,8 +181,4 @@ void kprintf(const char* format, ...)
 	}
 	
 	va_end(lst);
-	
-	// If multi-tasking has been initialised, start interrupts again
-	if (task_ready())
-		asm volatile("sti");
 }

@@ -11,6 +11,7 @@ void isr_handler(registers_t regs)
 		handler(&regs);
 	} else {
 		kprintf("Unhandled ISR: %i\n", regs.int_no);
+		kprintf("Instruction address: %x\n", regs.eip);
 		PANIC("Unhandled ISR");
 	}
 }

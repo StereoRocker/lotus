@@ -96,6 +96,7 @@ int32_t strcmp(const char* str1, const char* str2)
 
 void panic(const char* message, const char* file, uint32_t line, const char* function)
 {
+	bochs_break();
 	asm volatile("cli");
 	kprintf("Kernel panic: %s\n%s:%i function:%s\n", message, file, line, function);
 	for (;;);

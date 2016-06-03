@@ -71,37 +71,51 @@ void kmain(multiboot_t* multiboot, void* init_sb)
 	// The ELF is passed as a pointer to a memory buffer, with a length
 	// We're going to fork before loading it, as we will want to query the VFS in kernel land
 	ASSERT(mod_count() > 0);
-	uint32_t pid = fork();
-	if (!pid)
+	
+	for (int i = 1; i < 2; i++)
 	{
-		kexec_elf((uint8_t*)mod_addr(0), mod_len(0));
+		uint32_t pid = fork();
+		if (!pid)
+			kexec_elf((uint8_t*)mod_addr(i), mod_len(i));
 	}
-	else
+	
+	/*for (int i = 0; i < 16; i++)
 	{
-		// Wait for the VFS to register a filesystem
-		while (1)
+		uint32_t pid = fork();
+		if (!pid)
 		{
-			uint32_t count = vfs_fscount();
-			if (count > 0)
-				break;
+			pid = getpid();
+			while (1)
+			{
+				kprintf("Child %i executing\n", pid);
+				task_switch();
+			}
 		}
-		
-		kprintf("VFS registers %i filesystem(s)\n", vfs_fscount());
-		
-		// Test mounting
-		uint32_t ret = vfs_mount("/", "none", "dummy");
-		
-		kprintf("Mounting none on / with dummy returned: %x\n", ret);
-		
-		// Test opening
-		ret = vfs_open("/blarg");
-		kprintf("vfs_open returned %x\n", ret);
-		
-		// Test reading
-		uint32_t data = 0;
-		ret = vfs_read("/blarg", 0, 4, (uint8_t*)&data);
-		kprintf("vfs_read returned reading %i bytes, which were: %x\n", ret, data);
+	}*/
+	
+	// Wait for the VFS to register a filesystem
+	while (1)
+	{
+		uint32_t count = vfs_fscount();
+		if (count > 0)
+			break;
 	}
+		
+	kprintf("VFS registers %i filesystem(s)\n", vfs_fscount());
+		
+	// Test mounting
+	uint32_t ret = vfs_mount("/", "none", "dummy");
+		
+	kprintf("Mounting none on / with dummy returned: %x\n", ret);
+		
+	// Test opening
+	ret = vfs_open("/blarg");
+	kprintf("vfs_open returned %x\n", ret);
+		
+	// Test reading
+	uint32_t data = 0;
+	ret = vfs_read("/blarg", 0, 4, (uint8_t*)&data);
+	kprintf("vfs_read returned reading %i bytes, which were: %x\n", ret, data);
 	
 	// Execute IRD, IFS, mount IFS on IRD
 	/* fork
