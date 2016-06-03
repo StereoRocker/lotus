@@ -44,7 +44,7 @@ void devfs_reg(char* name)
 	d->next = (struct dev_t*)dev;
 	
 	// Unlock the mutex
-	mutex_unlock(&devices)
+	mutex_unlock(&devices);
 }
 
 uint32_t devfs_reg_sys(uint32_t data)
