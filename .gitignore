@@ -1,2 +1,6 @@
 *.o
 *.iso
+*.bin
+*.a
+*.log
+*.ini
